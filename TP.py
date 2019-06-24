@@ -1,29 +1,47 @@
+import os
 import random
+from random import uniform as uni
 import socket
 import threading
 from threading import Semaphore as sem
 from threading import Thread as thr
-import pickle
-import base
+import numpy as np
+from numpy import pi as pi
+try:
+    from scipy.integrate import odeint as EDO
+except:
+    os.system('python -m pip install scipy')
 
 sema = sem()
 qin = 0
 qout = 0
 h = 0
 href = 0
+R0 = 2.5
+R1 = 5
+H = 10
 
 
 class process_thread(thr):
     def __init__(self):
 
         pass
+
     def run(self):
+        sema.acquire()
+        derivada = lambda h, t: (qin - uni(0.5, 1)*h**(1/2))/(pi*(R0 + ((R1 - R0)/H)*h)**2)
+        timestamp = np.linspace(0,10, )
+        sema.release()
+        time.sleep(0.05)
         pass
 
 class softPLC_thread(thr):
     def __init__(self):
         pass
+
     def run(self):
+        
+        time.sleep(0.1)
         pass
 
 
