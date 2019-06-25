@@ -13,6 +13,7 @@ except:
     os.system('python -m pip install scipy')
 
 sema = sem()
+maxIn = 7
 qin = 0
 qout = 0
 h = 0
@@ -24,25 +25,55 @@ H = 10
 
 class process_thread(thr):
     def __init__(self):
-
-        pass
+        self.h = []
+        self.h.append(h)
+        thr.__init__(self)
 
     def run(self):
         sema.acquire()
-        derivada = lambda h, t: (qin - uni(0.5, 1)*h**(1/2))/(pi*(R0 + ((R1 - R0)/H)*h)**2)
-        timestamp = np.linspace(0,10, )
+        self.RungeKuttaSimples()
         sema.release()
         time.sleep(0.05)
+
+    def RungeKuttaSimples(self):
+        try:
+            nextH = 2*self.h[-1] - self.h[-2] 
         pass
+
+    def RungeKutta(self, x, fx, n = 3, hs = 0.05):
+        k1 = []
+        k2 = []
+        k3 = []
+        k4 = []
+        xk = []
+        for i in range(n):
+            k1.append(fx[i](x)*hs)
+        for i in range(n):
+            xk.append(x[i] + k1[i]*0.5)
+        for i in range(n):
+            k2.append(fx[i](xk)*hs)
+        for i in range(n):
+            xk[i] = x[i] + k2[i]*0.5
+        for i in range(n):
+            k3.append(fx[i](xk)*hs)
+        for i in range(n):
+            xk[i] = x[i] + k3[i]
+        for i in range(n):
+            k4.append(fx[i](xk)*hs)
+        for i in range(n):
+            x[i] = x[i] + (k1[i] + 2*(k2[i] + k3[i]) + k4[i])/6
+        return x
+
 
 class softPLC_thread(thr):
     def __init__(self):
         pass
 
     def run(self):
-        
+
         time.sleep(0.1)
         pass
+
 
 
 class ClientThread(threading.Thread):
