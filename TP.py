@@ -9,10 +9,13 @@ from threading import Thread as thr
 import numpy as np
 from numpy import pi as pi
 import time
+import matplotlib.pyplot as plt
 try:
     from scipy.integrate import odeint as EDO
 except:
     os.system('python -m pip install scipy')
+
+
 
 sema = lock()
 maxIn = 10**(1/2)
@@ -27,7 +30,7 @@ H = 10
 
 
 class process_thread(thr):
-    def __init__(self):
+    def __init__(self, clientAddress = 0, clientsocket = 0):
         self.endCli = clientAddress
         self.sockCli = clientsocket
         thr.__init__(self)
@@ -98,7 +101,7 @@ class process_thread(thr):
 
 
 class softPLC_thread(thr):
-    def __init__(self):
+    def __init__(self, clientAddress = 0, clientsocket = 0):
         self.process = process_thread()
         self.endCli = clientAddress
         self.sockCli = clientsocket
@@ -130,7 +133,10 @@ class softPLC_thread(thr):
                 #print("qin atual -", qin)
             else:
                 qin = self.process.volumeC(H) - self.process.volumeC(h[-1]) + qout
-            self.sockCli.send(byte(qin), byte(qout), byte(h[-1]))
+            try:
+                self.sockCli.send(byte(qin), byte(qout), byte(h[-1]))
+            except:
+                pass
             sema.release()
             time.sleep(0.1)
         self._stop()
@@ -144,14 +150,31 @@ print("Inicializando servidor de simulação....")
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server.bind((LOCALHOST, PORT))
-server.listen(1)
-clientsock, clientAddress = server.accept()
+#server.listen(1)
+#clientsock, clientAddress = server.accept()
+
+x = []
+y = []
 
 
-pro = process_thread(clientsock, clientAddress)
+#pro = process_thread(clientsock, clientAddress)
+pro = process_thread()
 pro.start()
-plc = softPLC_thread(clientsock, clientAddress)
+#plc = softPLC_thread(clientsock, clientAddress)
+plc = softPLC_thread()
 plc.start()
 time.sleep(5)
+for i in range(len(h)-1):
+    x.append(i)
+    y.append(h[i])
 for i in range(len(h)):
     print(h[i], h[i] - h[i - 1])
+
+plt.plot(x, y, label = 'Altura',marker = '*')
+plt.xlabel('t(s)')
+plt.ylabel('h(m)')
+
+plt.title('Altura vs tempo')
+plt.legend()
+plt.draw()
+plt.show()
