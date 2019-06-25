@@ -7,16 +7,18 @@ from threading import Semaphore as sem
 from threading import Thread as thr
 import numpy as np
 from numpy import pi as pi
+import time
 try:
     from scipy.integrate import odeint as EDO
 except:
     os.system('python -m pip install scipy')
 
 sema = sem()
-maxIn = 7
-qin = 0
+maxIn = 10**(1/2)
+qin = 7
 qout = 0
-h = 0
+h = []
+h.append(0)
 href = 0
 R0 = 2.5
 R1 = 5
@@ -25,20 +27,36 @@ H = 10
 
 class process_thread(thr):
     def __init__(self):
-        self.h = []
-        self.h.append(h)
         thr.__init__(self)
 
     def run(self):
-        sema.acquire()
-        self.RungeKuttaSimples()
-        sema.release()
-        time.sleep(0.05)
+        while True:
+            sema.acquire()
+            qout = uni(0.5, 1)*(h[-1]**(1/2))
+            h.append(self.RungeKuttaSimples())
+            sema.release()
+            time.sleep(0.05)
+            #print("entrou")
+        self._stop()
+
+    def volume(self, altura = 0):
+        if altura == 0:
+            return 0
+        else:
+            r1 = 25/altura
+            return pi*(R0**2 + R0*r1 + r1**2)*altura/3
+
+    def volumeC(self, altura = 0):
+        if altura < 0:
+            return 0
+        else:
+            return pi*(R0**2)*altura
 
     def RungeKuttaSimples(self):
         try:
-            nextH = 2*self.h[-1] - self.h[-2] 
-        pass
+            return (qin - qout + self.volumeC(h[-1]))/(pi*(R0**2))
+        except:
+            pass
 
     def RungeKutta(self, x, fx, n = 3, hs = 0.05):
         k1 = []
@@ -67,45 +85,38 @@ class process_thread(thr):
 
 class softPLC_thread(thr):
     def __init__(self):
+        self.process = process_thread()
+        thr.__init__(self)
         pass
 
     def run(self):
-
-        time.sleep(0.1)
-        pass
-
-
-
-class ClientThread(threading.Thread):
-    def __init__(self, clientAddress, clientsocket, dealer = base.dealer(), jogadas = [], posi = 0):
-
-        self.player = dealer.distribuicao()
-        self.endCli = clientAddress
-        self.jogadas = jogadas
-
-        threading.Thread.__init__(self)
-        self.sockCli = clientsocket
-        self.data = 0
-
-        print("Nova conexão, endereço do cliente: ",self.endCli)
-
-    def run(self):
-        print("Conexao com: ", self.endCli)
-
-        #Real comunicação entre cliente e servidor
         while True:
-            self.data = self.sockCli.recv(2048)
-            if not self.data:
-                break
-            try:
-                if self.data == b'get':
-                    self.sockCli.send(pickle.dumps(self.player))
-                elif self.data == b'bye':
-                    break
-            except: pass
-            try:
-                self.jogadas = pickle.loads(self.data)
-            except: pass
-        self.sockCli.close()
-        print("Cliente com endereço ", self.endCli, " desconectado...")
+            sema.acquire()
+            nexth = self.process.RungeKuttaSimples()
+            if href < H:
+                nextIn = self.process.volumeC(href) - self.process.volumeC(h[-1]) + qout
+                print(h[-1])
+                if nextIn > maxIn:
+                    qin = maxIn
+                elif nextIn < 0:
+                    qin = 0
+                else:
+                    qin = nextIn
+                print(qin)
+            else:
+                qin = self.process.volumeC(H) - self.process.volumeC(h[-1]) + qout
+            sema.release()
+            time.sleep(0.1)
         self._stop()
+
+
+
+
+href = int(input())
+pro = process_thread()
+pro.start()
+plc = softPLC_thread()
+plc.start()
+time.sleep(5)
+for i in range(len(h)):
+    print(h[i], h[i] - h[i - 1])
