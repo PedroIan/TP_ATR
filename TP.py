@@ -22,7 +22,7 @@ maxIn = 10**(1/2)
 qin = maxIn
 qout = 0
 h = []
-h.append(0)
+h.append(7)
 href = 5
 R0 = 2.5
 R1 = 5
@@ -155,8 +155,7 @@ server.bind((LOCALHOST, PORT))
 
 x = []
 y = []
-
-
+yerro = []
 #pro = process_thread(clientsock, clientAddress)
 pro = process_thread()
 pro.start()
@@ -167,14 +166,16 @@ time.sleep(5)
 for i in range(len(h)-1):
     x.append(i)
     y.append(h[i])
-for i in range(len(h)):
-    print(h[i], h[i] - h[i - 1])
+    yerro.append(href - h[i])
 
-plt.plot(x, y, label = 'Altura',marker = '*')
+plt.plot(x, y, label = 'Altura')
 plt.xlabel('t(s)')
 plt.ylabel('h(m)')
-
 plt.title('Altura vs tempo')
+plt.legend()
+plt.draw()
+plt.grid(b = True)
+plt.plot(x, yerro, label = 'Erro')
 plt.legend()
 plt.draw()
 plt.show()
