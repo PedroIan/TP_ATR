@@ -20,7 +20,7 @@ qin = maxIn
 qout = 0
 h = []
 h.append(0)
-href = 0
+href = 5
 R0 = 2.5
 R1 = 5
 H = 10
@@ -148,7 +148,6 @@ server.listen(1)
 clientsock, clientAddress = server.accept()
 
 
-href = int(input())
 pro = process_thread(clientsock, clientAddress)
 pro.start()
 plc = softPLC_thread(clientsock, clientAddress)
