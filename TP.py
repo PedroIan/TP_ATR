@@ -10,6 +10,7 @@ import numpy as np
 from numpy import pi as pi
 import time
 import matplotlib.pyplot as plt
+import sys
 try:
     from scipy.integrate import odeint as EDO
 except:
@@ -17,12 +18,12 @@ except:
 
 
 
-sema = lock()
+mut = lock()
 maxIn = 10**(1/2)
 qin = maxIn
 qout = 0
 h = []
-h.append(7)
+h.append(0)
 href = 5
 R0 = 2.5
 R1 = 5
@@ -37,29 +38,21 @@ class process_thread(thr):
 
     def run(self):
         while True:
-            global sema
-            global maxIn
-            global qin
-            global qout
-            global h
-            global href
-            global R0
-            global R1
-            global H
-            sema.acquire()
+            global mut, maxIn, qin, qout, h, href, R0, R1, H
+            mut.acquire()
             qout = uni(0.5, 1)*(h[-1]**(1/2))
             #print("qout - ", qout)
             h.append(self.RungeKuttaSimples())
-            sema.release()
+            mut.release()
             time.sleep(0.05)
             #print("entrou")
         self._stop()
 
     def volume(self, altura = 0):
-        if altura == 0:
+        if altura <= 0:
             return 0
         else:
-            r1 = 25/altura
+            r1 = 50/altura
             return pi*(R0**2 + R0*r1 + r1**2)*altura/3
 
     def volumeC(self, altura = 0):
@@ -110,16 +103,8 @@ class softPLC_thread(thr):
 
     def run(self):
         while True:
-            global sema
-            global maxIn
-            global qin
-            global qout
-            global h
-            global href
-            global R0
-            global R1
-            global H
-            sema.acquire()
+            global mut, maxIn, qin, qout, h, href, R0, R1, H
+            mut.acquire()
             nexth = self.process.RungeKuttaSimples()
             if href < H:
                 nextIn = self.process.volumeC(href) - self.process.volumeC(h[-1]) + qout
@@ -137,9 +122,30 @@ class softPLC_thread(thr):
                 self.sockCli.send(byte(qin), byte(qout), byte(h[-1]))
             except:
                 pass
-            sema.release()
+            mut.release()
             time.sleep(0.1)
         self._stop()
+
+class synoptic(thr):
+    def __init__(self):
+        thr.__init__(self)
+
+    def run(self):
+        while True:
+            global qin, qout, h, mut
+            while True:
+                sys.stdout.write("%-20s | %-20s | %-20s" % (str(h[-1]), str(qin), str(qout)))
+                sys.stdout.flush()
+                sys.stdout.write("\r") # return to start of line
+                try:
+                    mut.acquire()
+                    href = input()
+                    mut.release()
+                except:
+                    pass
+                time.sleep(1)
+
+
 
 LOCALHOST = "127.0.0.1"
 PORT = 50000
@@ -162,6 +168,10 @@ pro.start()
 #plc = softPLC_thread(clientsock, clientAddress)
 plc = softPLC_thread()
 plc.start()
+
+syn = synoptic()
+syn.start()
+
 time.sleep(5)
 for i in range(len(h)-1):
     x.append(i)
@@ -175,7 +185,7 @@ plt.title('Altura vs tempo')
 plt.legend()
 plt.draw()
 plt.grid(b = True)
-plt.plot(x, yerro, label = 'Erro')
-plt.legend()
-plt.draw()
+#plt.plot(x, yerro, label = 'Erro')
+#plt.legend()
+#plt.draw()
 plt.show()
